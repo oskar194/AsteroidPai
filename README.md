@@ -1,1 +1,2 @@
 # AsteroidPai
+Gra na zaliczenie
