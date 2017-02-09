@@ -16,10 +16,6 @@ public class Main extends Applet implements Runnable, KeyListener {
 	 */
 	private static final long serialVersionUID = 1L;
 
-	double tVelX = 0;
-	double tVelY = 0;
-	double tTurnR = 0;
-	double tTurnL = 0;
 	boolean flagTurnL = false;
 	boolean flagTurnR = false;
 	boolean flagSpeed = false;
@@ -42,60 +38,37 @@ public class Main extends Applet implements Runnable, KeyListener {
 		int key = k.getKeyCode();
 		switch(key){
 		case KeyEvent.VK_UP:{
-			flagSpeed = true;
-			tVelX = 0;
-			tVelY = 0;
-			while( flagSpeed){
-				tVelX += (calcAngleMoveX(ship.getMoveAngle()) * 0.1);
-				tVelY += (calcAngleMoveY(ship.getMoveAngle()) * 0.1);
-			}
+			ship.setThursting(true);
 			break;
 		}
+
 		case KeyEvent.VK_RIGHT:{
-			flagTurnR = true;
-			tTurnR = 0;
-			while(flagTurnR){
-				tTurnR += 5;
-			}
+			ship.setTurning(3);
 			break;
 		}
 		case KeyEvent.VK_LEFT:{
-			flagTurnL = true;
-			tTurnL = 0;
-			while(flagTurnL){
-				tTurnL -= 5;
-			}
+			ship.setTurning(-3);
 			break;
 		}
+		case KeyEvent.VK_SPACE:{
+			ship.shoot();
 		}
-
-	}
+	}}
 
 	@Override
 	public void keyReleased(KeyEvent k) {
 		int key = k.getKeyCode();
 		switch(key){
 		case KeyEvent.VK_UP:{
-			flagSpeed = false;
-			ship.setMoveAngle(ship.getFaceAngle() - 90);
-			ship.incVelX(tVelX);
-			ship.incVelY(tVelY);
+			ship.setThursting(false);
 			break;
 		}
 		case KeyEvent.VK_RIGHT:{
-			flagTurnR = false;
-			ship.incFaceAngle(tTurnR);
-			if(ship.getFaceAngle() > 360){
-				ship.setFaceAngle(5);
-			}
+			ship.setTurning(0);
 			break;
 		}
 		case KeyEvent.VK_LEFT:{
-			flagTurnL = false;
-			ship.incFaceAngle(tTurnL);
-			if(ship.getFaceAngle() < 0){
-				ship.setFaceAngle(360-5);
-			}
+			ship.setTurning(0);
 			break;
 		}
 		}
@@ -115,8 +88,6 @@ public class Main extends Applet implements Runnable, KeyListener {
 			try{
 				gameUpdate();
 				Thread.sleep(20);
-				System.out.println("X: " + ship.getX() + " Y: " + ship.getY());
-				System.out.println("w: " + getSize().width + " h: " + getSize().height);
 			}
 			catch(InterruptedException e){
 				e.printStackTrace();
@@ -129,8 +100,8 @@ public class Main extends Applet implements Runnable, KeyListener {
 		this.resize(640, 480);
 		backbuffer = new BufferedImage(640, 480, BufferedImage.TYPE_INT_RGB);
 		g2d = backbuffer.createGraphics();
-		ship.setX(100);
-		ship.setY(100);
+		ship.setX(getSize().width / 2);
+		ship.setY(getSize().height / 2);
 		addKeyListener(this);
 	}
 
@@ -138,7 +109,19 @@ public class Main extends Applet implements Runnable, KeyListener {
 		g2d.setTransform(identity);
 		g2d.setPaint(Color.BLACK);
 		g2d.fillRect(0,0,getSize().width, getSize().height);
+		
+		g2d.setColor(Color.WHITE);
+		g2d.drawString("Ship X: " + Math.round(ship.getX()) + ", Y: " +
+		Math.round(ship.getY()) , 5, 10);
+		g2d.drawString("Ship VelX: " + Math.round(ship.getVelX()) + ",VelY: " +
+		Math.round(ship.getVelY()) , 5, 65);
+		g2d.drawString("Move angle: " + Math.round(
+		ship.getMoveAngle()), 5, 25);
+		g2d.drawString("Face angle: " + Math.round(
+		ship.getFaceAngle()), 5, 40);
+		
 		drawShip();
+		drawLasers();
 		paint(g);
 	}
 
@@ -148,6 +131,18 @@ public class Main extends Applet implements Runnable, KeyListener {
 		g2d.rotate(Math.toRadians(ship.getFaceAngle()));
 		g2d.setColor(Color.ORANGE);
 		g2d.fill(ship.getShape());
+	}
+	
+	public void drawLasers(){
+		for (Laser laser : ship.lasers) {
+			if(laser.isAlive()){
+				g2d.setTransform(identity);
+				g2d.translate(laser.getX(), laser.getY());
+				g2d.rotate(Math.toRadians(laser.getFaceAngle()));
+				g2d.setColor(Color.WHITE);
+				g2d.fill(laser.getShape());				
+			}
+		}
 	}
 
 	public void paint(Graphics g){
@@ -166,31 +161,49 @@ public class Main extends Applet implements Runnable, KeyListener {
 
 	public void gameUpdate(){
 		updateShip();
+		updateLasers();
 	}
 
 	public void updateShip(){
+		ship.thurst();
+		ship.turn();
 		ship.incX(ship.getVelX());
-		if(ship.getX() < -10){
-			ship.setX(getSize().width +10);
+		wrapShip();		
+		ship.setVelX(ship.getVelX()*0.99);
+		ship.setVelY(ship.getVelY()*0.99);
+	}
+
+	public void wrapShip() {
+		if(ship.getX() < -ship.getSize()){
+			ship.setX(getSize().width + ship.getSize());
 		}
-		else if(ship.getX() > getSize().width +10 ){
-			ship.setX(-10);
+		else if(ship.getX() > getSize().width + ship.getSize() ){
+			ship.setX(-ship.getSize());
 		}
 		ship.incY(ship.getVelY());
-		if(ship.getY() < -10){
-			ship.setY(getSize().height + 10);
-		}else if(ship.getY() > getSize().height + 10){
-			ship.setY(-10);
+		if(ship.getY() < -ship.getSize()){
+			ship.setY(getSize().height + ship.getSize());
+		}else if(ship.getY() > getSize().height + ship.getSize()){
+			ship.setY(-ship.getSize());
+		}
+	}
+	
+	public void updateLasers(){
+		for (Laser laser : ship.lasers) {
+			if(laser.isAlive()){
+				laser.incX(laser.getVelX());
+				if(laser.getX() < 0 || laser.getX() > getSize().width){
+					laser.setAlive(false);
+				}
+				laser.incY(laser.getVelY());
+				if(laser.getY() < 0 || laser.getY() > getSize().height){
+					laser.setAlive(false);
+				}
+			}
 		}
 	}
 
-	public double calcAngleMoveX(double angle) {
-		return (double) (Math.cos(angle * Math.PI / 180));
-	}
 
-	public double calcAngleMoveY(double angle) {
-		return (double) (Math.sin(angle * Math.PI / 180));
-	}
 
 
 }
