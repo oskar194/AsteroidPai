@@ -11,15 +11,13 @@ import java.awt.image.BufferedImage;
 
 public class Main extends Applet implements Runnable, KeyListener {
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
 
 	boolean flagTurnL = false;
 	boolean flagTurnR = false;
 	boolean flagSpeed = false;
-
+	
+	Client c;
 
 	Thread gameloop;
 
@@ -97,11 +95,13 @@ public class Main extends Applet implements Runnable, KeyListener {
 	}
 
 	public void init(){
+		this.c = new Client("localhost", 9000);
 		this.resize(640, 480);
 		backbuffer = new BufferedImage(640, 480, BufferedImage.TYPE_INT_RGB);
 		g2d = backbuffer.createGraphics();
 		ship.setX(getSize().width / 2);
 		ship.setY(getSize().height / 2);
+		c.sendToServer("Hello server", ship.getX(), ship.getY());
 		addKeyListener(this);
 	}
 
@@ -156,11 +156,13 @@ public class Main extends Applet implements Runnable, KeyListener {
 	}
 
 	public void stop(){
+		c.sendToServer("exit", 0, 0);
 		gameloop = null;
 	}
 
 	public void gameUpdate(){
 		updateShip();
+		c.sendToServer("gameUpdate", ship.getX(), ship.getY());
 		updateLasers();
 	}
 
