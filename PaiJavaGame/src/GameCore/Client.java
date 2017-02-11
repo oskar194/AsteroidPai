@@ -6,6 +6,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
 
 public class Client {//implements Runnable{
 
@@ -47,7 +48,7 @@ public class Client {//implements Runnable{
 		}
 	}
 
-	public void sendToServer(String message, double x, double y){
+	public void sendToServer(String message, PlayerShip ship){
 		if(message == "exit"){
 			try {
 				this.output.close();
@@ -57,14 +58,33 @@ public class Client {//implements Runnable{
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-		}
+		}else{
+			try {
+				this.output.writeObject(new MessageObject(message, ship));
+				this.output.flush();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}}
+	}
+	
+	public int getIdFromServer(){
+		int id = -1;
 		try {
-			this.output.writeObject(new MessageObject(message, x ,y));
-			this.output.flush();
-		} catch (IOException e) {
+			id = (int)input.readObject();
+		} catch (ClassNotFoundException | IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		return id;
+	}
+	
+	public void startListening(){
+		new Thread(new ClientListener(input)).start();
+	}
+	
+	public ArrayList<ClientObject> readFromServer(){
+		return ClientListener.clientList;
 	}
 
 	//	@Override

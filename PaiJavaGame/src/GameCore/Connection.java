@@ -11,15 +11,18 @@ import java.nio.charset.StandardCharsets;
 public class Connection implements Runnable {
 
 	private Socket clientSocket = null;
-	private String serverMessage = null;
+	private String name = null;
+	private int id;
 	MessageObject in;
 	boolean stopped = false;
+	ClientObject co;
 	
 	
-	public Connection(Socket clientSocket, String serverMessage){
+	public Connection(Socket clientSocket, String name, int id, ClientObject co){
 		this.clientSocket = clientSocket;
-		this.serverMessage = serverMessage;
-		System.out.println("Fajnie");
+		this.name = name;
+		this.id = id;
+		this.co = co;
 	}
 
 	@Override
@@ -30,6 +33,7 @@ public class Connection implements Runnable {
 			ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
 			//output.write(("Connected " + this.serverMessage).getBytes());
 			//this.open = true;
+			output.writeObject(this.id);
 			while(!this.stopped){
 			try {
 				this.in = (MessageObject) input.readObject();
@@ -37,8 +41,12 @@ public class Connection implements Runnable {
 					output.close();
 					input.close();
 					this.stopped = true;
+				}else if(in.message == "gameUpdate"){
+					co.ship = in.ship;
+					Server.clientList.set(id, co);
+					output.writeObject(Server.clientList);	
 				}
-				System.out.println(in.message + in.x + in.y);
+				System.out.println(in.message + " " + in.ship.getX() + " "+ in.ship.getY());
 			} catch (ClassNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
