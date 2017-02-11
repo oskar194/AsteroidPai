@@ -8,6 +8,11 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+import java.util.ArrayList;
 
 public class Main extends Applet implements Runnable, KeyListener {
 
@@ -17,7 +22,14 @@ public class Main extends Applet implements Runnable, KeyListener {
 	boolean flagTurnR = false;
 	boolean flagSpeed = false;
 	
-	Client c;
+	private String hostName = "localhost";
+	private int portNumber = 9000;
+	Socket connetionSocket;
+	private ObjectInputStream input;
+	private ObjectOutputStream output;
+	public ArrayList<ClientObject> clientList;
+	int id;
+	ClientObject co;
 
 	Thread gameloop;
 
@@ -95,12 +107,27 @@ public class Main extends Applet implements Runnable, KeyListener {
 	}
 
 	public void init(){
-		c = new Client("localhost", 9000);
+		try {
+			this.connetionSocket = new Socket(this.hostName, this.portNumber);
+			this.output = new ObjectOutputStream(this.connetionSocket.getOutputStream());
+			this.output.flush();
+			this.input = new ObjectInputStream(this.connetionSocket.getInputStream());
+			this.id = (int)this.input.readObject();
+		} catch (ClassNotFoundException | IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println(id);
+
+		
 		this.resize(640, 480);
 		backbuffer = new BufferedImage(640, 480, BufferedImage.TYPE_INT_RGB);
 		g2d = backbuffer.createGraphics();
 		ship.setX(getSize().width / 2);
 		ship.setY(getSize().height / 2);
+		
+		sendToServer("gameUpdate", this.ship);
+		
 		addKeyListener(this);
 	}
 
@@ -125,21 +152,53 @@ public class Main extends Applet implements Runnable, KeyListener {
 	}
 
 	public void drawShip(){
-		g2d.setTransform(identity);
-		g2d.translate(ship.getX(), ship.getY());
-		g2d.rotate(Math.toRadians(ship.getFaceAngle()));
-		g2d.setColor(Color.ORANGE);
-		g2d.fill(ship.getShape());
+		
+		for (ClientObject clientObject : clientList) {
+			if(clientObject != null){
+				if(clientObject.id != this.id){
+					if(clientObject.alive){					
+						g2d.setTransform(identity);
+						g2d.translate(clientObject.x, clientObject.y);
+						g2d.rotate(Math.toRadians(clientObject.faceangle));
+						g2d.setColor(Color.WHITE);
+						g2d.fill(clientObject.shape);
+					}
+				}else if(this.ship.isAlive()){
+					g2d.setTransform(identity);
+					g2d.translate(ship.getX(), ship.getY());
+					g2d.rotate(Math.toRadians(ship.getFaceAngle()));
+					g2d.setColor(Color.ORANGE);
+					g2d.fill(ship.getShape());						
+				}
+			}
+		}
 	}
 	
 	public void drawLasers(){
-		for (Laser laser : ship.lasers) {
-			if(laser.isAlive()){
-				g2d.setTransform(identity);
-				g2d.translate(laser.getX(), laser.getY());
-				g2d.rotate(Math.toRadians(laser.getFaceAngle()));
-				g2d.setColor(Color.WHITE);
-				g2d.fill(laser.getShape());				
+		for (ClientObject clientObject : clientList) {
+			if(clientObject != null){
+				if(clientObject.id != this.id){
+					for(int i=0; i<PlayerShip.LQ; i++){
+						if(clientObject.laseralive[i]){
+							g2d.setTransform(identity);
+							g2d.translate(clientObject.laserposx[i], clientObject.laserposy[i]);
+							g2d.rotate(Math.toRadians(clientObject.laserangle[i]));
+							g2d.setColor(Color.WHITE);
+							g2d.fill(clientObject.lasershape[i]);				
+						}
+					}
+				}else{
+					for (Laser laser : ship.lasers) {
+						if(laser.isAlive()){
+							g2d.setTransform(identity);
+							g2d.translate(laser.getX(), laser.getY());
+							g2d.rotate(Math.toRadians(laser.getFaceAngle()));
+							g2d.setColor(Color.WHITE);
+							g2d.fill(laser.getShape());				
+						}
+					}
+
+				}
 			}
 		}
 	}
@@ -160,8 +219,9 @@ public class Main extends Applet implements Runnable, KeyListener {
 
 	public void gameUpdate(){
 		updateShip();
-		c.sendToServer("gameUpdate", this.ship);
-		c.readFromServer();
+		sendToServer("gameUpdate", this.ship);
+		readFromServer();
+		checkCollisions();
 		updateLasers();
 	}
 
@@ -201,6 +261,42 @@ public class Main extends Applet implements Runnable, KeyListener {
 					laser.setAlive(false);
 				}
 			}
+		}
+	}
+	
+	public void checkCollisions(){
+		for (ClientObject clientObject : clientList) {
+			for(int i=0; i<PlayerShip.LQ; i++){
+				if(clientObject.laseralive[i]){
+					if(this.ship.getBounds().contains(clientObject.laserposx[i], clientObject.laserposy[i])){
+						this.ship.setAlive(false);
+					}
+				}
+				
+			}
+		}
+	}
+
+	public void sendToServer(String message, PlayerShip ship){
+		try {
+			this.output.writeObject(new MessageObject(message, ship.getX(), ship.getY(), ship.getFaceAngle(), ship.isAlive(), ship.getShape(), ship.lasers));
+			this.output.flush();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	
+	public void readFromServer(){
+		try {
+			this.clientList = (ArrayList<ClientObject>)this.input.readObject();
+			if(clientList != null){
+				for (ClientObject clientObject : clientList) {
+					System.out.println("ClientObject id: " + clientObject.id + " X: " + clientObject.x + "Y: " + clientObject.y);
+				}
+			}
+		} catch (ClassNotFoundException | IOException e) {
+			e.printStackTrace();
 		}
 	}
 

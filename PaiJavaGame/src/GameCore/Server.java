@@ -39,7 +39,7 @@ public class Server implements Runnable {
 				throw new RuntimeException(
 						"Cannot connect client", e);
 			}
-			ClientObject co = new ClientObject("Maciek", counter, 0, 0, 0, false);
+			ClientObject co = new ClientObject("Maciek", counter, 0, 0, 0, false,null);
 			clientList.add(counter, co);
 			new Thread(
 					new Connection(
@@ -90,6 +90,10 @@ public class Server implements Runnable {
 			clientList = new ArrayList<ClientObject>();
 		}
 		return clientList;
+	}
+	
+	public static void changeList(int id, ClientObject co){
+		getListReference().set(id, co);
 	}
 	
 

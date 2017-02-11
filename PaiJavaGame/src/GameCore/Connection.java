@@ -29,24 +29,22 @@ public class Connection implements Runnable {
 			output.flush();
 			ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
 			output.writeObject(this.id);
+			output.flush();
 			while(!this.stopped){
 			try {
 				this.in = (MessageObject) input.readObject();
-				if(in != null){
-					if(in.message == "exit"){
+				if(this.in != null){
+					if(this.in.message == "exit"){
 //						output.close();
 //						input.close();
 //						this.stopped = true;
-					}else if(in.message == "gameUpdate"){
-						//updateClientInServer(in);
-//						this.co.x = in.x;
-//						this.co.y = in.y;
-//						this.co.alive = in.alive;
-//						this.co.faceangle = in.faceangle;
-						output.writeObject(new ClientObject(this.name, this.id, in.x, in.y, in.faceangle, in.alive));
+					}else{
+						updateClientInServer(in);
+						output.reset();
+						output.writeObject(Server.getListReference());
 						output.flush();
 					}
-					System.out.println(in.message + " " + in.x + " " + in.y);					
+					System.out.println(this.in.message + " " + this.in.x + " " + this.in.y);					
 				}
 			} catch (ClassNotFoundException e) {
 				// TODO Auto-generated catch block
@@ -63,6 +61,12 @@ public class Connection implements Runnable {
 		this.co.y = in.y;
 		this.co.alive = in.alive;
 		this.co.faceangle = in.faceangle;
-//		Server.getListReference().add(this.id, this.co);
+		this.co.shape = in.shape;
+		this.co.laserangle = in.laserangle;
+		this.co.laserposx = in.laserposx;
+		this.co.laserposy = in.laserposy;
+		this.co.laseralive = in.laseralive;
+		this.co.lasershape = in.lasershape;
+		Server.changeList(this.co.id, this.co);
 	}
 }

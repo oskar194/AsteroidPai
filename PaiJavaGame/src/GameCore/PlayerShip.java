@@ -5,7 +5,7 @@ import java.awt.Rectangle;
 
 public class PlayerShip extends VectorShape{
 	private int size = 20;
-	private final int LQ = 20;
+	static final int LQ = 20;
 	private int [] shipx ={-size, 0, size};
 	private int [] shipy ={size, -size, size};
 	private boolean thursting = false;
