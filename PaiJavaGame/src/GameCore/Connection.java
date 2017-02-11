@@ -1,12 +1,9 @@
 package GameCore;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 
 public class Connection implements Runnable {
 
@@ -31,22 +28,26 @@ public class Connection implements Runnable {
 			ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream());
 			output.flush();
 			ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
-			//output.write(("Connected " + this.serverMessage).getBytes());
-			//this.open = true;
 			output.writeObject(this.id);
 			while(!this.stopped){
 			try {
 				this.in = (MessageObject) input.readObject();
-				if(in.message == "exit"){
-					output.close();
-					input.close();
-					this.stopped = true;
-				}else if(in.message == "gameUpdate"){
-					co.ship = in.ship;
-					Server.clientList.set(id, co);
-					output.writeObject(Server.clientList);	
+				if(in != null){
+					if(in.message == "exit"){
+//						output.close();
+//						input.close();
+//						this.stopped = true;
+					}else if(in.message == "gameUpdate"){
+						//updateClientInServer(in);
+//						this.co.x = in.x;
+//						this.co.y = in.y;
+//						this.co.alive = in.alive;
+//						this.co.faceangle = in.faceangle;
+						output.writeObject(new ClientObject(this.name, this.id, in.x, in.y, in.faceangle, in.alive));
+						output.flush();
+					}
+					System.out.println(in.message + " " + in.x + " " + in.y);					
 				}
-				System.out.println(in.message + " " + in.ship.getX() + " "+ in.ship.getY());
 			} catch (ClassNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -55,5 +56,13 @@ public class Connection implements Runnable {
 		}catch(IOException e){
 			e.printStackTrace();
 		}
+	}
+
+	public void updateClientInServer(MessageObject in) {
+		this.co.x = in.x;
+		this.co.y = in.y;
+		this.co.alive = in.alive;
+		this.co.faceangle = in.faceangle;
+//		Server.getListReference().add(this.id, this.co);
 	}
 }

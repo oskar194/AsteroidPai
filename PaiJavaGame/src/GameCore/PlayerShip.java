@@ -2,9 +2,8 @@ package GameCore;
 
 import java.awt.Polygon;
 import java.awt.Rectangle;
-import java.io.Serializable;
 
-public class PlayerShip extends VectorShape implements Serializable{
+public class PlayerShip extends VectorShape{
 	private int size = 20;
 	private final int LQ = 20;
 	private int [] shipx ={-size, 0, size};

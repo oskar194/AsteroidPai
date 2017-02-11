@@ -1,14 +1,12 @@
 package GameCore;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 
-public class Client {//implements Runnable{
+public class Client implements Runnable{
 
 	private String hostName;
 	private int portNumber;
@@ -16,11 +14,15 @@ public class Client {//implements Runnable{
 	private ObjectInputStream input;
 	private ObjectOutputStream output;
 	private boolean stopped = false;
-
+	public ArrayList<ClientObject> clientList;
+	int id;
+	ClientObject co;
 
 	public Client(String hostName, int portNumber){
 		this.hostName = hostName;
 		this.portNumber = portNumber;
+		//clientList = new ArrayList<ClientObject>();
+		this.co = null;
 		try{
 			this.connetionSocket = new Socket(this.hostName, this.portNumber);
 		}catch(IOException e){
@@ -30,6 +32,8 @@ public class Client {//implements Runnable{
 			this.output = new ObjectOutputStream(this.connetionSocket.getOutputStream());
 			this.output.flush();
 			this.input = new ObjectInputStream(this.connetionSocket.getInputStream());
+			this.id = getIdFromServer();
+			System.out.println(id);
 		}catch(IOException e){
 			throw new RuntimeException("Couldn't get io from server", e);
 		}
@@ -49,23 +53,13 @@ public class Client {//implements Runnable{
 	}
 
 	public void sendToServer(String message, PlayerShip ship){
-		if(message == "exit"){
 			try {
-				this.output.close();
-				this.input.close();
-				return;
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}else{
-			try {
-				this.output.writeObject(new MessageObject(message, ship));
+				this.output.writeObject(new MessageObject(message, ship.getX(), ship.getY(), ship.getFaceAngle(), ship.isAlive()));
 				this.output.flush();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-			}}
+			}
 	}
 	
 	public int getIdFromServer(){
@@ -79,18 +73,50 @@ public class Client {//implements Runnable{
 		return id;
 	}
 	
-	public void startListening(){
-		new Thread(new ClientListener(input)).start();
+	public void startListening(Socket connectionSocket){
+		new Thread(new ClientListener(this.id, connectionSocket)).start();
 	}
 	
-	public ArrayList<ClientObject> readFromServer(){
-		return ClientListener.clientList;
-	}
+	public void readFromServer(){
+		System.out.println("Slucham");
+		try {
+			System.out.println("Slucham");
+//			this.clientList = (ArrayList<ClientObject>) this.input.readObject();
+			co = (ClientObject)input.readObject();
+			System.out.println("MAM");
+			if(co != null){					
+//				ClientObject co = clientList.get(this.id);
+				System.out.println("X:" + co.x + " Y: " + co.y + " Alive: " + co.alive + " faceangle: " + co.faceangle);
+				return;
+			}else{
+				System.out.println("Byl null");
+				return;
+			}
+		} catch (ClassNotFoundException | IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		}
+	
 
-	//	@Override
-	//	public void run() {
-	//		// TODO Auto-generated method stub
-	//		
-	//	}
+	@Override
+	public void run() {
+		while(this.input != null){
+			System.out.println("Slucham");
+			try {
+				System.out.println("Slucham");
+//				this.clientList = (ArrayList<ClientObject>) this.input.readObject();
+				this.co = (ClientObject)this.input.readObject();
+				if(this.co != null){					
+//					ClientObject co = clientList.get(this.id);
+					System.out.println("X:" + co.x + " Y: " + co.y + " Alive: " + co.alive + " faceangle: " + co.faceangle);
+				}
+			} catch (ClassNotFoundException | IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+	}
 
 }

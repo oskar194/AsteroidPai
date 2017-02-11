@@ -1,9 +1,8 @@
 package GameCore;
 
 import java.awt.Rectangle;
-import java.io.Serializable;
 
-public class Laser extends VectorShape implements Serializable {
+public class Laser extends VectorShape {
 	public Rectangle getBounds(){
 		Rectangle r = new Rectangle((int)getX(), (int)getY(),2,2);
 		return r;

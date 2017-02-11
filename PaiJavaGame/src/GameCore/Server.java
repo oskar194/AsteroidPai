@@ -11,13 +11,13 @@ public class Server implements Runnable {
 	protected ServerSocket serverSocket = null;
 	protected boolean stopped = false;
 	protected Thread runningThread = null;
-	public static ArrayList<ClientObject> clientList;
+	private static ArrayList<ClientObject> clientList = null;
 	protected int counter;
 	
 	
 	protected Server(int port){
 		this.portNumber = port;
-		clientList = new ArrayList<ClientObject>();
+		clientList = getListReference();
 		this.counter = 0;
 	}
 
@@ -39,8 +39,8 @@ public class Server implements Runnable {
 				throw new RuntimeException(
 						"Cannot connect client", e);
 			}
-			ClientObject co = new ClientObject("Maciek", counter, new PlayerShip());
-			clientList.add(co);
+			ClientObject co = new ClientObject("Maciek", counter, 0, 0, 0, false);
+			clientList.add(counter, co);
 			new Thread(
 					new Connection(
 							clientSocket, "Maciek", counter, co)).start();
@@ -83,6 +83,13 @@ public class Server implements Runnable {
 
 	private synchronized boolean isStopped(){
 		return this.stopped;
+	}
+	
+	public static ArrayList<ClientObject> getListReference(){
+		if(clientList == null){
+			clientList = new ArrayList<ClientObject>();
+		}
+		return clientList;
 	}
 	
 

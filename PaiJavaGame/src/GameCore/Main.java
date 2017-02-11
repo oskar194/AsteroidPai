@@ -8,7 +8,6 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
 
 public class Main extends Applet implements Runnable, KeyListener {
 
@@ -17,8 +16,6 @@ public class Main extends Applet implements Runnable, KeyListener {
 	boolean flagTurnL = false;
 	boolean flagTurnR = false;
 	boolean flagSpeed = false;
-	
-	int id;
 	
 	Client c;
 
@@ -33,8 +30,6 @@ public class Main extends Applet implements Runnable, KeyListener {
 	AffineTransform identity = new AffineTransform();
 
 	PlayerShip ship = new PlayerShip();
-	
-	ArrayList<ClientObject> clientList;
 
 	@Override
 	public void keyPressed(KeyEvent k) {
@@ -100,15 +95,12 @@ public class Main extends Applet implements Runnable, KeyListener {
 	}
 
 	public void init(){
-		this.c = new Client("localhost", 9000);
-		this.id = c.getIdFromServer();
+		c = new Client("localhost", 9000);
 		this.resize(640, 480);
 		backbuffer = new BufferedImage(640, 480, BufferedImage.TYPE_INT_RGB);
 		g2d = backbuffer.createGraphics();
 		ship.setX(getSize().width / 2);
 		ship.setY(getSize().height / 2);
-		//c.sendToServer("Hello server", ship.getX(), ship.getY());
-		c.startListening();
 		addKeyListener(this);
 	}
 
@@ -133,25 +125,11 @@ public class Main extends Applet implements Runnable, KeyListener {
 	}
 
 	public void drawShip(){
-//		g2d.setTransform(identity);
-//		g2d.translate(ship.getX(), ship.getY());
-//		g2d.rotate(Math.toRadians(ship.getFaceAngle()));
-//		g2d.setColor(Color.ORANGE);
-//		g2d.fill(ship.getShape());
-		
-		for (ClientObject clientObject : clientList) {
-		if(clientObject != null){			
-			g2d.setTransform(identity);
-			g2d.translate(clientObject.ship.getX(), clientObject.ship.getY());
-			g2d.rotate(Math.toRadians(clientObject.ship.getFaceAngle()));
-			if(clientObject.id != this.id){
-				g2d.setColor(Color.ORANGE);
-			}else{
-				g2d.setColor(Color.WHITE);
-			}
-			g2d.fill(clientObject.ship.getShape());
-		}
-		}
+		g2d.setTransform(identity);
+		g2d.translate(ship.getX(), ship.getY());
+		g2d.rotate(Math.toRadians(ship.getFaceAngle()));
+		g2d.setColor(Color.ORANGE);
+		g2d.fill(ship.getShape());
 	}
 	
 	public void drawLasers(){
@@ -177,15 +155,14 @@ public class Main extends Applet implements Runnable, KeyListener {
 	}
 
 	public void stop(){
-		c.sendToServer("exit", ship);
 		gameloop = null;
 	}
 
 	public void gameUpdate(){
 		updateShip();
-		c.sendToServer("gameUpdate", ship);
+		c.sendToServer("gameUpdate", this.ship);
+		c.readFromServer();
 		updateLasers();
-		clientList = c.readFromServer();
 	}
 
 	public void updateShip(){
