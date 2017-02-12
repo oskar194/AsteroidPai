@@ -5,6 +5,10 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.xml.sax.SAXException;
+
 public class Server implements Runnable {
 	
 	protected int portNumber = 8000;
@@ -16,7 +20,12 @@ public class Server implements Runnable {
 	private static ArrayList<Thread> threadList;
 	
 	protected Server(int port){
-		this.portNumber = port;
+		try {
+			this.portNumber = new ConfigParser("src/GameCore/config.xml").getPort();
+		} catch (ParserConfigurationException | SAXException | IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		clientList = getListReference();
 		this.counter = 0;
 		threadList = new ArrayList<Thread>();

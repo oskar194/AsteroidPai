@@ -15,6 +15,10 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Random;
 
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.xml.sax.SAXException;
+
 public class Main extends Applet implements Runnable, KeyListener {
 
 	private static final long serialVersionUID = 1L;
@@ -23,8 +27,9 @@ public class Main extends Applet implements Runnable, KeyListener {
 	boolean flagTurnR = false;
 	boolean flagSpeed = false;
 	
-	private String hostName = "localhost";
-	private int portNumber = 9000;
+	
+	String hostName;
+	int portNumber;
 	Socket connetionSocket;
 	private ObjectInputStream input;
 	private ObjectOutputStream output;
@@ -111,6 +116,17 @@ public class Main extends Applet implements Runnable, KeyListener {
 	}
 
 	public void init(){
+		
+		ConfigParser cp;
+		try {
+			cp = new ConfigParser("../src/GameCore/config.xml");
+			this.hostName = cp.getHostname();
+			this.portNumber = cp.getPort();
+		} catch (ParserConfigurationException | SAXException | IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
 		try {
 			this.score = 0;
 			this.connetionSocket = new Socket(this.hostName, this.portNumber);
