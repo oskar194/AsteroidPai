@@ -1,5 +1,6 @@
 package GameCore;
 
+import java.awt.Rectangle;
 import java.awt.Shape;
 import java.io.Serializable;
 
@@ -17,6 +18,9 @@ public class MessageObject implements Serializable{
 	double laserangle[] = new double[PlayerShip.LQ];
 	boolean laseralive[] = new boolean[PlayerShip.LQ];
 	Shape lasershape[] = new Shape[PlayerShip.LQ];
+	Rectangle laserbounds[] = new Rectangle[PlayerShip.LQ];
+	Shape bounds;
+	int score;
 	//PlayerShip ship;
 	
 //	public MessageObject(String message, PlayerShip ship){
@@ -24,7 +28,7 @@ public class MessageObject implements Serializable{
 //		this.ship = ship;
 //	}
 	
-	public MessageObject(String message, double x, double y, double faceangle, boolean alive, Shape shape, Laser laserTable[]){
+	public MessageObject(String message, double x, double y, double faceangle, boolean alive, Shape shape, Laser laserTable[], Shape bounds, int score){
 		this.message = message;
 		this.x = x;
 		this.y = y;
@@ -38,7 +42,10 @@ public class MessageObject implements Serializable{
 			this.laserposy[i] = laser.getY();
 			this.laseralive[i] = laser.isAlive();
 			this.lasershape[i] = laser.getShape();
+			this.laserbounds[i] = laser.getBounds();
 			i++;
 		}
+		this.bounds = bounds;
+		this.score = score;
 	}
 }

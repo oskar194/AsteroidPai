@@ -13,6 +13,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Random;
 
 public class Main extends Applet implements Runnable, KeyListener {
 
@@ -31,6 +32,8 @@ public class Main extends Applet implements Runnable, KeyListener {
 	int id;
 	ClientObject co;
 
+	int score = 0;
+	
 	Thread gameloop;
 
 	BufferedImage backbuffer;
@@ -104,10 +107,12 @@ public class Main extends Applet implements Runnable, KeyListener {
 			}
 			repaint();
 		}
+		return;
 	}
 
 	public void init(){
 		try {
+			this.score = 0;
 			this.connetionSocket = new Socket(this.hostName, this.portNumber);
 			this.output = new ObjectOutputStream(this.connetionSocket.getOutputStream());
 			this.output.flush();
@@ -119,12 +124,13 @@ public class Main extends Applet implements Runnable, KeyListener {
 		}
 		System.out.println(id);
 
+		Random gen = new Random();
 		
 		this.resize(640, 480);
 		backbuffer = new BufferedImage(640, 480, BufferedImage.TYPE_INT_RGB);
 		g2d = backbuffer.createGraphics();
-		ship.setX(getSize().width / 2);
-		ship.setY(getSize().height / 2);
+		ship.setX(gen.nextInt(getSize().width - 20));
+		ship.setY(gen.nextInt(getSize().height - 20));
 		
 		sendToServer("gameUpdate", this.ship);
 		
@@ -135,16 +141,31 @@ public class Main extends Applet implements Runnable, KeyListener {
 		g2d.setTransform(identity);
 		g2d.setPaint(Color.BLACK);
 		g2d.fillRect(0,0,getSize().width, getSize().height);
+		g2d.setPaint(Color.WHITE);
 		
-		g2d.setColor(Color.WHITE);
-		g2d.drawString("Ship X: " + Math.round(ship.getX()) + ", Y: " +
-		Math.round(ship.getY()) , 5, 10);
-		g2d.drawString("Ship VelX: " + Math.round(ship.getVelX()) + ",VelY: " +
-		Math.round(ship.getVelY()) , 5, 65);
-		g2d.drawString("Move angle: " + Math.round(
-		ship.getMoveAngle()), 5, 25);
-		g2d.drawString("Face angle: " + Math.round(
-		ship.getFaceAngle()), 5, 40);
+//		g2d.setColor(Color.WHITE);
+//		g2d.drawString("Ship X: " + Math.round(ship.getX()) + ", Y: " +
+//		Math.round(ship.getY()) , 5, 10);
+//		g2d.drawString("Ship VelX: " + Math.round(ship.getVelX()) + ",VelY: " +
+//		Math.round(ship.getVelY()) , 5, 65);
+//		g2d.drawString("Move angle: " + Math.round(
+//		ship.getMoveAngle()), 5, 25);
+//		g2d.drawString("Face angle: " + Math.round(
+//		ship.getFaceAngle()), 5, 40);
+		
+		g2d.drawString("Your score: "+ this.score, 5, 10 );
+		
+		int z = 20;
+		for (ClientObject clientObject : clientList) {
+			if(clientObject != null){
+				if(clientObject.id != this.id){
+					if(clientObject.alive){					
+						g2d.drawString(clientObject.name + " score: " + clientObject.score, 5, z );
+						z += 10;
+					}					
+				}
+			}
+		}
 		
 		drawShip();
 		drawLasers();
@@ -160,15 +181,22 @@ public class Main extends Applet implements Runnable, KeyListener {
 						g2d.setTransform(identity);
 						g2d.translate(clientObject.x, clientObject.y);
 						g2d.rotate(Math.toRadians(clientObject.faceangle));
-						g2d.setColor(Color.WHITE);
+						g2d.setColor(Color.ORANGE);
 						g2d.fill(clientObject.shape);
+						g2d.setColor(Color.WHITE);
+						g2d.drawString(clientObject.name, -15, 0);
 					}
 				}else if(this.ship.isAlive()){
 					g2d.setTransform(identity);
 					g2d.translate(ship.getX(), ship.getY());
 					g2d.rotate(Math.toRadians(ship.getFaceAngle()));
-					g2d.setColor(Color.ORANGE);
-					g2d.fill(ship.getShape());						
+					g2d.setColor(Color.WHITE);
+					g2d.fill(ship.getShape());
+//					g2d.fill(ship.getBounds());
+				}else{
+					g2d.setTransform(identity);
+					g2d.setColor(Color.WHITE);
+					g2d.drawString("YOU DIED", getSize().width/2, getSize().height/2);
 				}
 			}
 		}
@@ -177,7 +205,7 @@ public class Main extends Applet implements Runnable, KeyListener {
 	public void drawLasers(){
 		for (ClientObject clientObject : clientList) {
 			if(clientObject != null){
-				if(clientObject.id != this.id){
+				if((clientObject.id != this.id) && clientObject.alive){
 					for(int i=0; i<PlayerShip.LQ; i++){
 						if(clientObject.laseralive[i]){
 							g2d.setTransform(identity);
@@ -214,15 +242,18 @@ public class Main extends Applet implements Runnable, KeyListener {
 	}
 
 	public void stop(){
+		sendToServer("exit", this.ship);
+		ship.setAlive(false);
 		gameloop = null;
 	}
 
 	public void gameUpdate(){
-		updateShip();
-		sendToServer("gameUpdate", this.ship);
 		readFromServer();
-		checkCollisions();
+		checkMyCollisions();
+		updateShip();
 		updateLasers();
+		checkCollisions();
+		sendToServer("gameUpdate", this.ship);			
 	}
 
 	public void updateShip(){
@@ -265,38 +296,65 @@ public class Main extends Applet implements Runnable, KeyListener {
 	}
 	
 	public void checkCollisions(){
-		for (ClientObject clientObject : clientList) {
-			for(int i=0; i<PlayerShip.LQ; i++){
-				if(clientObject.laseralive[i]){
-					if(this.ship.getBounds().contains(clientObject.laserposx[i], clientObject.laserposy[i])){
-						this.ship.setAlive(false);
+		for(ClientObject clientObject : clientList){	
+			if(clientObject != null){
+				if(clientObject.id != this.id){
+					for(int i=0; i<PlayerShip.LQ; i++){
+						if(clientObject.laseralive[i]){
+							if(this.ship.getBounds().intersects(clientObject.laserbounds[i])){
+								stop();
+							}
+						}
 					}
 				}
-				
+			}
+		}
+	}
+	
+	private void checkMyCollisions() {
+		for (ClientObject clientObject : clientList) {
+			if(clientObject != null){
+				if(clientObject.id != this.id){
+					for(Laser las : ship.lasers){
+						if(las.isAlive()){
+							if(clientObject.alive){
+								if(clientObject.bounds.intersects(las.getBounds())){
+									this.score++;
+									las.setAlive(false);
+								}							
+							}
+						}
+					}
+				}
 			}
 		}
 	}
 
 	public void sendToServer(String message, PlayerShip ship){
-		try {
-			this.output.writeObject(new MessageObject(message, ship.getX(), ship.getY(), ship.getFaceAngle(), ship.isAlive(), ship.getShape(), ship.lasers));
-			this.output.flush();
-		} catch (IOException e) {
-			e.printStackTrace();
+		if(this.ship.isAlive()){			
+			try {
+				this.output.writeObject(new MessageObject(message, ship.getX(), ship.getY(), ship.getFaceAngle(), ship.isAlive(), ship.getShape(), ship.lasers, ship.getBounds(), score));
+				this.output.flush();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	
 	
 	public void readFromServer(){
-		try {
-			this.clientList = (ArrayList<ClientObject>)this.input.readObject();
-			if(clientList != null){
-				for (ClientObject clientObject : clientList) {
-					System.out.println("ClientObject id: " + clientObject.id + " X: " + clientObject.x + "Y: " + clientObject.y);
+		if(this.ship.isAlive()){
+			try {
+				this.clientList = (ArrayList<ClientObject>)this.input.readObject();
+				if(clientList != null){
+					for (ClientObject clientObject : clientList) {
+						if(clientObject != null)
+							System.out.println("ClientObject id: " + clientObject.id + " X: " + clientObject.x + "Y: " + clientObject.y);
+					}
 				}
+			} catch (ClassNotFoundException | IOException e) {
+				e.printStackTrace();
 			}
-		} catch (ClassNotFoundException | IOException e) {
-			e.printStackTrace();
 		}
 	}
 

@@ -15,7 +15,7 @@ public class PlayerShip extends VectorShape{
 
 	public Rectangle getBounds(){
 		Rectangle r;
-		r = new Rectangle((int)getX(), (int)getY(), size, size);
+		r = new Rectangle((int)this.getX(), (int)this.getY(), this.size*2, this.size*2);
 		return r;
 	}
 
@@ -67,8 +67,8 @@ public class PlayerShip extends VectorShape{
 		this.lasers[currentLaser].setY(this.getY());
 		this.lasers[currentLaser].setFaceAngle(this.getFaceAngle());
 		this.lasers[currentLaser].setMoveAngle(this.lasers[currentLaser].getFaceAngle() - 90);
-		this.lasers[currentLaser].setVelX((this.calcAngleMoveX(this.lasers[currentLaser].getMoveAngle()) * 2));
-		this.lasers[currentLaser].setVelY((this.calcAngleMoveY(this.lasers[currentLaser].getMoveAngle()) * 2));
+		this.lasers[currentLaser].setVelX((this.calcAngleMoveX(this.lasers[currentLaser].getMoveAngle()) * 5));
+		this.lasers[currentLaser].setVelY((this.calcAngleMoveY(this.lasers[currentLaser].getMoveAngle()) * 5));
 		this.lasers[currentLaser].setAlive(true);
 		this.currentLaser++;
 	}

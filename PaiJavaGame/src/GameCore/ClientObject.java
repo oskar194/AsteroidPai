@@ -1,5 +1,6 @@
 package GameCore;
 
+import java.awt.Rectangle;
 import java.awt.Shape;
 import java.io.Serializable;
 
@@ -17,6 +18,9 @@ public class ClientObject implements Serializable{
 	double laserangle[] = new double[PlayerShip.LQ];
 	boolean laseralive[] = new boolean[PlayerShip.LQ];
 	Shape lasershape[] = new Shape[PlayerShip.LQ];
+	Rectangle laserbounds[] = new Rectangle[PlayerShip.LQ];
+	Shape bounds;
+	int score;
 //	PlayerShip ship;
 	
 	

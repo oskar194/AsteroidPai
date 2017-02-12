@@ -8,29 +8,30 @@ import java.util.ArrayList;
 public class Server implements Runnable {
 	
 	protected int portNumber = 8000;
-	protected ServerSocket serverSocket = null;
-	protected boolean stopped = false;
-	protected Thread runningThread = null;
+	protected static ServerSocket serverSocket = null;
+	protected static boolean stopped = false;
+	protected static Thread runningThread = null;
 	private static ArrayList<ClientObject> clientList = null;
 	protected int counter;
-	
+	private static ArrayList<Thread> threadList;
 	
 	protected Server(int port){
 		this.portNumber = port;
 		clientList = getListReference();
 		this.counter = 0;
+		threadList = new ArrayList<Thread>();
 	}
 
 	@Override
 	public void run() {
 		synchronized(this){
-			this.runningThread = Thread.currentThread();
+			runningThread = Thread.currentThread();
 		}
 		createServerSocket();
 		while(! isStopped()){
 			Socket clientSocket = null;
 			try{
-				clientSocket = this.serverSocket.accept();
+				clientSocket = serverSocket.accept();
 			} catch (IOException e){
 				if(isStopped()){
 					System.out.println("Server stopped working");
@@ -41,9 +42,10 @@ public class Server implements Runnable {
 			}
 			ClientObject co = new ClientObject("Maciek", counter, 0, 0, 0, false,null);
 			clientList.add(counter, co);
-			new Thread(
+			threadList.add(new Thread(
 					new Connection(
-							clientSocket, "Maciek", counter, co)).start();
+							clientSocket, "Maciek", counter, co)));
+			threadList.get(this.counter).start();
 			this.counter++;
 			System.out.println("Server stopped");
 		}
@@ -61,28 +63,37 @@ public class Server implements Runnable {
 		    e.printStackTrace();
 		}
 		System.out.println("Stopping Server");
-		server.stop();
+		if(getListReference().isEmpty()){
+			stop();
+		}
+//		server.stop();
 	}
 	
-	private synchronized void stop(){
-		this.stopped = true;
+	private synchronized static void stop(){
+		stopped = true;
 		try{
-			this.serverSocket.close();
+			serverSocket.close();
 		}catch(IOException e){
 			throw new RuntimeException("Cannot close server", e);
+		}
+		try {
+			runningThread.join();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 
 	private void createServerSocket(){
 		try{
-			this.serverSocket = new ServerSocket(this.portNumber);
+			serverSocket = new ServerSocket(this.portNumber);
 		} catch(IOException e){
 			throw new RuntimeException("Cannot open port number " + this.portNumber, e);
 		}
 	}
 
 	private synchronized boolean isStopped(){
-		return this.stopped;
+		return stopped;
 	}
 	
 	public static ArrayList<ClientObject> getListReference(){
@@ -94,6 +105,16 @@ public class Server implements Runnable {
 	
 	public static void changeList(int id, ClientObject co){
 		getListReference().set(id, co);
+	}
+	
+	public static void deleteUser(int id){
+		getListReference().set(id, null);
+		try {
+			threadList.get(id).join();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 
