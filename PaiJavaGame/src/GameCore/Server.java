@@ -49,11 +49,11 @@ public class Server implements Runnable {
 				throw new RuntimeException(
 						"Cannot connect client", e);
 			}
-			ClientObject co = new ClientObject("Maciek", counter, 0, 0, 0, false,null);
+			ClientObject co = new ClientObject("Player"+counter, counter, 0, 0, 0, false,null);
 			clientList.add(counter, co);
 			threadList.add(new Thread(
 					new Connection(
-							clientSocket, "Maciek", counter, co)));
+							clientSocket, "Player"+counter, counter, co)));
 			threadList.get(this.counter).start();
 			this.counter++;
 			System.out.println("Server stopped");
